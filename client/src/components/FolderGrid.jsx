@@ -1,8 +1,55 @@
+import { useState, useEffect, useRef } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Mousewheel } from "swiper/modules";
 import { BiSolidLockAlt } from "react-icons/bi";
+import ContextMenu from "./ContextMenu";
 
 const FolderGrid = ({ folders, selectedFolder, onSelect, onLockedClick }) => {
+  const [contextMenu, setContextMenu] = useState(null);
+  const justOpenedRef = useRef(false);
+
+  // Close menu on outside click / esc
+  useEffect(() => {
+    if (!contextMenu) return;
+
+    const close = () => setContextMenu(null);
+    const handleClick = (e) => {
+      if (justOpenedRef.current) {
+        justOpenedRef.current = false;
+        return;
+      }
+      if (e.target.closest(".context-menu")) return;
+      close();
+    };
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") close();
+    };
+
+    const timeoutId = setTimeout(() => {
+      document.addEventListener("click", handleClick, true);
+    }, 100);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      clearTimeout(timeoutId);
+      document.removeEventListener("click", handleClick, true);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [contextMenu]);
+
+  const onRightClick = (e, folder) => {
+    e.preventDefault();
+    e.stopPropagation();
+    justOpenedRef.current = true;
+    
+    // Position relative to viewport since swiper might be tricky
+    setContextMenu({
+      x: e.pageX, 
+      y: e.pageY, 
+      file: folder, // Reuse 'file' prop for folder
+    });
+  };
+
   return (
     <div className="px-10 mt-5">
       <Swiper
@@ -13,11 +60,11 @@ const FolderGrid = ({ folders, selectedFolder, onSelect, onLockedClick }) => {
         className="!overflow-visible"
       >
         {folders.map((folder) => {
-          const isActive = folder.id === selectedFolder?.id;
+          const isActive = folder._id === selectedFolder?._id;
 
           return (
             <SwiperSlide
-              key={folder.id}
+              key={folder._id}
               style={{ width: "7rem" }}
               className="cursor-pointer"
             >
@@ -29,6 +76,7 @@ const FolderGrid = ({ folders, selectedFolder, onSelect, onLockedClick }) => {
                     onSelect(folder);
                   }
                 }}
+                onContextMenu={(e) => onRightClick(e, folder)}
                 className="text-center flex flex-col items-center"
               >
                 {/* Folder Icon */}
@@ -179,6 +227,16 @@ const FolderGrid = ({ folders, selectedFolder, onSelect, onLockedClick }) => {
           );
         })}
       </Swiper>
+      
+      {/* CONTEXT MENU */}
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          file={contextMenu.file}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
     </div>
   );
 };

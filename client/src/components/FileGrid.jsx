@@ -1,60 +1,8 @@
-import { useState, useEffect, useRef } from "react";
-import ContextMenu from "./ContextMenu";
+import { useRef } from "react";
 
 const FileGrid = ({ files, onFileUpload }) => {
-  const [contextMenu, setContextMenu] = useState(null);
-  const justOpenedRef = useRef(false);
-  const containerRef = useRef(null);
   const fileInputRef = useRef(null);
-
-  // Close menu on outside click / esc
-  useEffect(() => {
-    if (!contextMenu) return;
-
-    const close = () => setContextMenu(null);
-    const handleClick = (e) => {
-      // Ignore the first click after opening (browser behavior)
-      if (justOpenedRef.current) {
-        justOpenedRef.current = false;
-        return;
-      }
-      // Don't close if clicking on the context menu itself
-      if (e.target.closest(".context-menu")) return;
-      close();
-    };
-    const handleKeyDown = (e) => {
-      if (e.key === "Escape") {
-        close();
-      }
-    };
-
-    // Add listeners after a short delay
-    const timeoutId = setTimeout(() => {
-      document.addEventListener("click", handleClick, true);
-    }, 100);
-
-    document.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      clearTimeout(timeoutId);
-      document.removeEventListener("click", handleClick, true);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [contextMenu]);
-
-  const onRightClick = (e, file) => {
-    e.preventDefault();
-    e.stopPropagation();
-    justOpenedRef.current = true;
-    if (containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      setContextMenu({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
-        file,
-      });
-    }
-  };
+  const containerRef = useRef(null);
 
   const handleAddFileClick = () => {
     fileInputRef.current?.click();
@@ -83,7 +31,6 @@ const FileGrid = ({ files, onFileUpload }) => {
           files.map((file) => (
             <div
               key={file.id}
-              onContextMenu={(e) => onRightClick(e, file)}
               className="text-center flex flex-col items-center cursor-pointer select-none"
             >
               <svg
@@ -134,16 +81,6 @@ const FileGrid = ({ files, onFileUpload }) => {
           </svg>
         </div>
       </div>
-
-      {/* CONTEXT MENU */}
-      {contextMenu && (
-        <ContextMenu
-          x={contextMenu.x}
-          y={contextMenu.y}
-          file={contextMenu.file}
-          onClose={() => setContextMenu(null)}
-        />
-      )}
     </div>
   );
 };
