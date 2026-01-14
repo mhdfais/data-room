@@ -39,7 +39,15 @@ export const createFolder = async (req, res) => {
 export const getFolders = async (req, res) => {
   try {
     const folders = await Folder.find({ user: req.userId }).sort({ createdAt: -1 });
-    res.json(folders);
+    
+    // Transform folders to include 'locked' property (boolean) and remove password hash
+    const transformedFolders = folders.map(folder => ({
+      ...folder.toObject(),
+      locked: !!folder.password,
+      password: undefined // Don't send hash to client
+    }));
+
+    res.json(transformedFolders);
   } catch (error) {
     console.error('Get folders error:', error);
     res.status(500).json({ message: 'Server error' });
